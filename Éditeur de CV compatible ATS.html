@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Éditeur de CV compatible ATS</title>
+<style>
+:root{--bg:#f3f5f4;--panel:#fff;--ink:#1b2528;--mute:#5b6a6e;--line:#d6dedd;--acc:#0f6b6b;--accfg:#fff;--ok:#1d7a46;--warn:#b4531a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121819;--panel:#1b2426;--ink:#e6eeee;--mute:#9fb0b3;--line:#2f3d40;--acc:#4fb8b3;--accfg:#0b1415;--ok:#5cc48a;--warn:#e89a62;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121819;--panel:#1b2426;--ink:#e6eeee;--mute:#9fb0b3;--line:#2f3d40;--acc:#4fb8b3;--accfg:#0b1415;--ok:#5cc48a;--warn:#e89a62;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{display:grid;grid-template-columns:minmax(300px,430px) minmax(0,1fr);gap:24px;padding:18px;max-width:1240px;margin:0 auto}
+@media(max-width:880px){.app{grid-template-columns:1fr}}
+.ed{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+.ed h1{font-size:20px;margin:0 0 2px}
+.ed .sub{color:var(--mute);margin:0 0 14px;font-size:13px}
+.ed h2{font-size:14px;margin:20px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
+label{display:block;font-size:12.5px;color:var(--mute);margin:8px 0 3px}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+textarea{resize:vertical;min-height:64px}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.item{border-left:3px solid var(--acc);padding-left:10px;margin:12px 0}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--acc);background:transparent;color:var(--acc);padding:6px 11px}
+button.main{background:var(--acc);color:var(--accfg)}
+button.del{border-color:var(--line);color:var(--mute);font-size:12.5px;padding:3px 8px;margin-top:6px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.chk{list-style:none;padding:0;margin:6px 0;font-size:13.5px}
+.chk li{padding:2px 0 2px 22px;position:relative}
+.chk li::before{position:absolute;left:0;font-weight:700}
+.chk .ok::before{content:"✓";color:var(--ok)}
+.chk .no::before{content:"!";color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.chip{font-size:12.5px;padding:2px 8px;border-radius:99px;border:1px solid var(--line)}
+.chip.f{border-color:var(--ok);color:var(--ok)}
+.chip.m{border-color:var(--warn);color:var(--warn)}
+.score{font-size:26px;font-weight:700}
+.paper{background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;padding:38px 42px;max-width:794px;width:100%;margin:0 auto;border:1px solid var(--line);min-height:900px}
+.paper h1{font-size:25px;margin:0;letter-spacing:.2px}
+.paper .t{font-size:15px;margin:2px 0 4px;color:#0f6b6b;font-weight:700}
+.paper .c{margin:0 0 6px;color:#333}
+.paper h2{font-size:13.5px;margin:16px 0 6px;padding-bottom:3px;border-bottom:1.5px solid #0f6b6b;color:#0f6b6b}
+.paper h3{font-size:13px;margin:9px 0 0}
+.paper .d{color:#444;margin:0}
+.paper ul{margin:4px 0 0;padding-left:18px}
+.paper p{margin:3px 0}
+.paper.t2{font-family:Georgia,"Times New Roman",serif;font-size:13.5px}
+.paper.t2 h1{text-align:center;font-size:26px}
+.paper.t2 .t,.paper.t2 .c{text-align:center}
+.paper.t2 .t{color:#111;font-weight:400;font-style:italic}
+.paper.t2 h2{color:#111;border-bottom:1px solid #111;font-size:14px}
+.paper.t3{font-size:12.5px}
+.paper.t3 h1{font-size:28px;color:#0f6b6b}
+.paper.t3 .t{color:#111}
+.paper.t3 h2{background:#eaf2f2;border:0;border-left:4px solid #0f6b6b;padding:3px 8px;color:#111}
+@media print{@page{margin:14mm}body{background:#fff}.ed{display:none}.app{display:block;padding:0}.paper{border:0;padding:0;max-width:none;min-height:0}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="ed" id="ed"></aside>
+<main><article class="paper" id="cv" aria-label="Aperçu du CV"></article></main>
+</div>
+<script>
+var KEY="cv-ats-v1";
+var sample=function(){return{tpl:"1",lang:"fr",view:"cv",to:"",letter:"",name:"Prénom Nom",title:"Coordonnateur de projet",city:"Montréal, QC",email:"prenom.nom@courriel.com",phone:"514 555-0123",link:"linkedin.com/in/prenomnom",
+summary:"Coordonnateur de projet comptant 6 ans d’expérience en planification, suivi budgétaire et gestion d’équipes multidisciplinaires. Habitué à livrer dans les délais des projets de 50 à 400 k$ et à communiquer clairement avec les clients et les parties prenantes.",
+exps:[{role:"Coordonnateur de projet",org:"Entreprise Exemple inc., Montréal",dates:"2021 – présent",bullets:"Planifier et suivre 12 projets par année, avec un taux de livraison à temps de 94 %\nRéduire les coûts de 8 % en renégociant les contrats fournisseurs\nAnimer les rencontres hebdomadaires avec une équipe de 9 personnes"},
+{role:"Adjoint administratif",org:"Société Modèle, Laval",dates:"2018 – 2021",bullets:"Produire les rapports mensuels de suivi budgétaire\nCoordonner les horaires et la logistique de 20 employés"}],
+edu:[{deg:"Baccalauréat en administration des affaires",school:"Université Exemple",dates:"2014 – 2018"}],
+skills:"Gestion de projet, Planification, Budgétisation, Excel, Microsoft 365, Communication, Leadership, Résolution de problèmes",
+langs:"Français (langue maternelle), Anglais (courant)"}};
+var S=null;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||!S.exps)S=sample();
+S.tpl=S.tpl||"1";S.lang=S.lang||"fr";S.view=S.view||"cv";S.to=S.to||"";S.letter=S.letter||"";
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function inp(k,lab,v,l,i){return'<label>'+lab+'<input data-k="'+k+'"'+(l?' data-l="'+l+'" data-i="'+i+'"':'')+' value="'+esc(v)+'"></label>'}
+function sel(k,lab,o){return'<label>'+lab+'<select data-k="'+k+'">'+o.map(function(x){return'<option value="'+x[0]+'"'+(S[k]===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join("")+'</select></label>'}
+function area(k,lab,v,l,i,h){return'<label>'+lab+'<textarea data-k="'+k+'"'+(l?' data-l="'+l+'" data-i="'+i+'"':'')+(h?' style="min-height:'+h+'px"':'')+'>'+esc(v)+'</textarea></label>'}
+function buildEditor(){
+var h='<h1>Éditeur de CV</h1><p class="sub">Une colonne, texte réel, titres standards : lisible par les logiciels de tri.</p>';
+h+=sel("view","Document affiché",[["cv","CV"],["letter","Lettre de présentation"]])+sel("tpl","Mise en page",[["1","Classique"],["2","Sobre (police à empattements)"],["3","Moderne (titres surlignés)"]])+sel("lang","Langue du document",[["fr","Français"],["en","English"]]);
+h+=inp("name","Nom complet",S.name)+inp("title","Titre du poste visé",S.title)+inp("city","Ville, province",S.city)+inp("email","Courriel",S.email)+inp("phone","Téléphone",S.phone)+inp("link","Lien LinkedIn (facultatif)",S.link);
+h+='<h2>Profil</h2>'+area("summary","3 à 4 phrases avec vos chiffres clés",S.summary,"",0,110);
+h+='<h2>Expérience professionnelle</h2>';
+S.exps.forEach(function(x,i){h+='<div class="item">'+inp("role","Titre du poste",x.role,"exps",i)+inp("org","Employeur, ville",x.org,"exps",i)+inp("dates","Dates (ex. 2021 – présent)",x.dates,"exps",i)+area("bullets","Réalisations (une par ligne)",x.bullets,"exps",i,100)+'<button class="del" data-del="exps" data-i="'+i+'">Supprimer ce poste</button></div>'});
+h+='<button data-add="exps">Ajouter un poste</button><h2>Formation</h2>';
+S.edu.forEach(function(x,i){h+='<div class="item">'+inp("deg","Diplôme",x.deg,"edu",i)+inp("school","Établissement",x.school,"edu",i)+inp("dates","Dates",x.dates,"edu",i)+'<button class="del" data-del="edu" data-i="'+i+'">Supprimer</button></div>'});
+h+='<button data-add="edu">Ajouter une formation</button><h2>Compétences et langues</h2>'+area("skills","Compétences (séparées par des virgules)",S.skills,"",0,80)+area("langs","Langues",S.langs,"",0,50);
+h+='<h2>Lettre de présentation</h2>'+area("to","Destinataire (nom, entreprise, adresse)",S.to,"",0,60)+area("letter","Corps de la lettre (laissez vide pour un texte de départ)",S.letter,"",0,150);
+h+='<h2>Vérification ATS</h2><div id="chk"></div><h2>Comparer à une offre d’emploi</h2><label>Collez le texte de l’offre<textarea id="offer" style="min-height:90px"></textarea></label><div id="kw"></div>';
+h+='<div class="bar"><button class="main" id="pr">Imprimer ou enregistrer en PDF</button><button id="cp">Copier en texte brut</button><button id="rs">Réinitialiser</button></div><p class="sub" id="msg" role="status"></p>';
+var o=document.getElementById("offer"),old=o?o.value:"";
+document.getElementById("ed").innerHTML=h;document.getElementById("offer").value=old;}
+function lines(s){return String(s||"").split(/\n+/).map(function(x){return x.trim()}).filter(Boolean)}
+function csv(s){return String(s||"").split(/[,\n]/).map(function(x){return x.trim()}).filter(Boolean)}
+function cvText(){var t=[S.name,S.title,S.city,S.email,S.phone,S.link,"PROFIL",S.summary,"EXPÉRIENCE PROFESSIONNELLE"];
+S.exps.forEach(function(x){t.push(x.role+" – "+x.org+" ("+x.dates+")");lines(x.bullets).forEach(function(b){t.push("- "+b)})});
+t.push("FORMATION");S.edu.forEach(function(x){t.push(x.deg+" – "+x.school+" ("+x.dates+")")});
+t.push("COMPÉTENCES",csv(S.skills).join(", "),"LANGUES",csv(S.langs).join(", "));return t.filter(function(x){return x!=null&&x!==""}).join("\n")}
+function defLetter(){var en=S.lang==="en",sk=csv(S.skills).slice(0,3).join(", "),t=S.title||"…";return en?"Your posting for the "+t+" position caught my attention. My background has given me strong skills in "+sk+", which I would bring to your team.\n\nI am available for an interview at your convenience. Thank you for considering my application.":"Votre offre pour le poste de "+t+" a retenu mon attention. Mon parcours m’a permis de développer des compétences en "+sk+", que je mettrai au service de votre équipe.\n\nJe suis disponible pour une entrevue à votre convenance. Merci de l’attention portée à ma candidature."}
+function letterText(){var en=S.lang==="en";return [S.name,[S.city,S.email,S.phone].filter(Boolean).join(" | "),"",S.to,"",en?"Dear hiring team,":"Madame, Monsieur,","",S.letter.trim()||defLetter(),"",en?"Sincerely,":"Cordialement,",S.name].join("\n")}
+function letterHtml(){var en=S.lang==="en",p='<p style="margin:10px 0">';return '<h1>'+esc(S.name)+'</h1><p class="c">'+[S.city,S.email,S.phone].filter(Boolean).map(esc).join(" | ")+'</p>'+(S.to?p+esc(S.to).replace(/\n/g,"<br>")+'</p>':'')+p+(en?"Dear hiring team,":"Madame, Monsieur,")+'</p>'+lines(S.letter.trim()||defLetter()).map(function(x){return p+esc(x)+'</p>'}).join("")+p+(en?"Sincerely,":"Cordialement,")+'<br>'+esc(S.name)+'</p>'}
+function paint(){
+var T=S.lang==="en"?{p:"Profile",e:"Professional experience",f:"Education",s:"Skills",l:"Languages"}:{p:"Profil",e:"Expérience professionnelle",f:"Formation",s:"Compétences",l:"Langues"};
+var c=[S.city,S.email,S.phone,S.link].filter(Boolean).map(esc).join(" | ");
+var h='<h1>'+esc(S.name)+'</h1><p class="t">'+esc(S.title)+'</p><p class="c">'+c+'</p>';
+if(S.summary)h+='<h2>'+T.p+'</h2><p>'+esc(S.summary)+'</p>';
+if(S.exps.length){h+='<h2>'+T.e+'</h2>';S.exps.forEach(function(x){h+='<h3>'+esc(x.role)+(x.org?' – '+esc(x.org):'')+'</h3><p class="d">'+esc(x.dates)+'</p><ul>'+lines(x.bullets).map(function(b){return'<li>'+esc(b)+'</li>'}).join("")+'</ul>'})}
+if(S.edu.length){h+='<h2>'+T.f+'</h2>';S.edu.forEach(function(x){h+='<h3>'+esc(x.deg)+'</h3><p class="d">'+esc(x.school)+(x.dates?' | '+esc(x.dates):'')+'</p>'})}
+if(csv(S.skills).length)h+='<h2>'+T.s+'</h2><p>'+csv(S.skills).map(esc).join(", ")+'</p>';
+if(csv(S.langs).length)h+='<h2>'+T.l+'</h2><p>'+csv(S.langs).map(esc).join(", ")+'</p>';
+var cv=document.getElementById("cv");cv.className="paper t"+S.tpl;cv.innerHTML=S.view==="letter"?letterHtml():h;
+var k=[[/\S+@\S+\.\S+/.test(S.email)&&String(S.phone).replace(/\D/g,"").length>=10,"Courriel et téléphone valides, en texte (pas dans l’en-tête de page)"],
+[S.summary.length>=150&&S.summary.length<=550,"Profil de 150 à 550 caractères ("+S.summary.length+")"],
+[S.exps.length>0&&S.exps.every(function(x){return lines(x.bullets).length>=2}),"Au moins 2 réalisations par poste"],
+[S.exps.every(function(x){return/\d{4}/.test(x.dates)})&&S.edu.every(function(x){return/\d{4}/.test(x.dates)}),"Chaque poste et formation porte des années"],
+[/\d/.test(S.exps.map(function(x){return x.bullets}).join(" ")),"Des résultats chiffrés dans vos réalisations"],
+[csv(S.skills).length>=6,"6 compétences ou plus ("+csv(S.skills).length+")"]];
+var ok=k.filter(function(x){return x[0]}).length,tot=k.length+1;
+var ch='<div class="score">'+Math.round((ok+1)/tot*100)+' %</div><ul class="chk">'+k.map(function(x){return'<li class="'+(x[0]?'ok':'no')+'">'+x[1]+'</li>'}).join("")+'<li class="ok">Une seule colonne, sans tableau, image ni icône</li></ul>';
+document.getElementById("chk").innerHTML=ch;kw();save();}
+var STOP="avec dans pour vous nous sont être avoir cette votre notre leurs elle elles ainsi aussi plus tout tous sans sous chez dont mais comme entre vers sera fait faire poste emploi offre équipe travail".split(" ");
+function kw(){var o=document.getElementById("offer"),el=document.getElementById("kw");if(!o||!o.value.trim()){el.innerHTML="";return}
+var w=o.value.toLowerCase().match(/[\p{L}][\p{L}\-]{3,}/gu)||[],n={};w.forEach(function(x){if(STOP.indexOf(x)<0)n[x]=(n[x]||0)+1});
+var top=Object.keys(n).sort(function(a,b){return n[b]-n[a]}).slice(0,16),t=cvText().toLowerCase();
+var f=top.filter(function(x){return t.indexOf(x)>=0}),m=top.filter(function(x){return t.indexOf(x)<0});
+el.innerHTML='<p class="sub">Mots clés de l’offre déjà dans votre CV ('+f.length+'/'+top.length+') :</p><div class="chips">'+f.map(function(x){return'<span class="chip f">'+esc(x)+'</span>'}).join("")+'</div><p class="sub">À ajouter si c’est vrai pour vous :</p><div class="chips">'+m.map(function(x){return'<span class="chip m">'+esc(x)+'</span>'}).join("")+'</div>'}
+var ed=document.getElementById("ed");
+ed.addEventListener("input",function(e){var t=e.target;if(t.id==="offer"){kw();return}var k=t.dataset.k;if(!k)return;if(t.dataset.l)S[t.dataset.l][+t.dataset.i][k]=t.value;else S[k]=t.value;paint()});
+ed.addEventListener("click",function(e){var t=e.target,m=document.getElementById("msg");
+if(t.dataset.add){S[t.dataset.add].push(t.dataset.add==="exps"?{role:"",org:"",dates:"",bullets:""}:{deg:"",school:"",dates:""});buildEditor();paint()}
+else if(t.dataset.del){S[t.dataset.del].splice(+t.dataset.i,1);buildEditor();paint()}
+else if(t.id==="pr"){try{window.print()}catch(x){m.textContent="Impression bloquée ici : ouvrez la page dans un onglet, puis utilisez Ctrl+P ou Cmd+P."}}
+else if(t.id==="cp"){try{navigator.clipboard.writeText(S.view==="letter"?letterText():cvText()).then(function(){m.textContent="Texte copié. Utile pour les formulaires de candidature."},function(){m.textContent="Copie impossible : sélectionnez le texte de l’aperçu."})}catch(x){m.textContent="Copie impossible : sélectionnez le texte de l’aperçu."}}
+else if(t.id==="rs"){S=sample();buildEditor();paint();m.textContent="Modèle d’exemple rétabli."}});
+buildEditor();paint();
+</script>
+</body>
+</html>
